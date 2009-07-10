@@ -328,8 +328,21 @@ var HCard = Microformat.define('vcard', {
 //
 
 
+var HRights = Microformat.define( 'hrights', {
+    one : ['work-license','attributionname' ],
+    many : ['license' ],
+    postprocess : function( data,node ) {
+        var links = node.getElementsByTagName("a");
+        for (var i = 0; i<links.length; ++i) {
+            if( links[i].getAttribute('rel') == 'work-license' ) {
+                data.workLicense = { url: links[i].href, name: links[i].innerHTML };
+            }
+        }
+    }
+} );
+
 var HNews = Microformat.define('hentry', {
-  one : ['entry-title', 'entry-summary', 'published', 'updated' ],
+  one : ['entry-title', 'entry-summary', 'published', 'updated', {'hrights' : HRights } ],
   many : [ {'author' : HCard} ],
   postprocess : function( data,node ) {
     // implied updated
@@ -400,6 +413,8 @@ go: function() {
     // look for articles on page:
     var stories = HNews.discover();
 
+
+
     // if more stories that containers, drop some
     if( stories.length > containers.length ) {
         stories = stories.slice( 0, containers.length);
@@ -441,9 +456,28 @@ renderIngredients: function( story ) {
         out = out + VAB.fmtRow( 'Published:', story.published.toLocaleString() );
     }
     out = out + VAB.fmtRow( 'Last updated:', story.updated.toLocaleString() );
+
+    //
     if( story.principles ) {
         out = out + VAB.fmtRow( 'Statement of principles:', story.principles.name.link( story.principles.url ) );
     }
+
+    //
+    if( story.hrights ) {
+        var r = story.hrights;
+
+        var rights = r.workLicense.name.link( r.workLicense.url );
+        rights += '<br />';
+        if( r.licenseList ) {
+            rights += '<ul>';
+            for(var i=0; i < r.licenseList.length; ++i) {
+                rights += '<li>' + r.licenseList[i] + '</li>';
+            }
+            rights += '</ul>'
+        }
+        out = out + VAB.fmtRow( 'License:', rights );
+    }
+
 
     out = out + '</table>\n';
     out = out + '</div>\n';
